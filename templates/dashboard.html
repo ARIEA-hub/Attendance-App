@@ -21,22 +21,37 @@
       <th>MAC</th>
       <th>Roll No</th>
       <th>Name</th>
+      <th>Details</th>
       <th>First Seen</th>
       <th>Last Seen</th>
       <th>Assign</th>
     </tr>
-    {% for mac, roll, name, first, last in rows %}
+    {% for row in rows %}
     <tr>
-      <td>{{ mac }}</td>
-      <td>{{ roll }}</td>
-      <td>{{ name }}</td>
-      <td>{{ first|datetimeformat }}</td>
-      <td>{{ last|datetimeformat }}</td>
+      <td>{{ row.mac }}</td>
+      <td>{{ row.roll_no }}</td>
+      <td>{{ row.name }}</td>
+      <td>
+        {% if row.ip_address %}
+          <strong>IP:</strong> {{ row.ip_address }}<br>
+          <strong>Interface:</strong> {{ row.interface or 'n/a' }}
+          {% if row.raw_line %}
+          <details>
+            <summary>View ARP line</summary>
+            <small>{{ row.raw_line }}</small>
+          </details>
+          {% endif %}
+        {% else %}
+          <span>No extra details captured yet</span>
+        {% endif %}
+      </td>
+      <td>{{ row.first_seen|datetimeformat }}</td>
+      <td>{{ row.last_seen|datetimeformat }}</td>
       <td>
         <form action="/assign" method="post">
-          <input type="hidden" name="mac" value="{{ mac }}">
-          <input type="text" name="roll_no" placeholder="Roll No" value="{{ roll }}">
-          <input type="text" name="name" placeholder="Name" value="{{ name }}">
+          <input type="hidden" name="mac" value="{{ row.mac }}">
+          <input type="text" name="roll_no" placeholder="Roll No" value="{{ row.roll_no }}">
+          <input type="text" name="name" placeholder="Name" value="{{ row.name }}">
           <button type="submit">💾 Save</button>
         </form>
       </td>

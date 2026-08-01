@@ -15,6 +15,7 @@ IGNORE_MACS = {
     "01-00-5e-00-00-fb",
     "01-00-5e-00-00-fc",
 }
+DEVICE_DETAILS = {}
 
 # ------------------------------------------------------------
 # DATABASE SETUP
@@ -80,6 +81,30 @@ def register_device(mac, roll_no, name):
     conn.commit()
     conn.close()
 
+def parse_arp_output(output):
+    """Parse common ARP output into a list of dictionaries with IP, MAC, interface and raw line."""
+    parsed = []
+    for line in output.splitlines():
+        cleaned = line.strip()
+        if not cleaned:
+            continue
+
+        ip_match = re.search(r"\((\d+\.\d+\.\d+\.\d+)\)", cleaned)
+        mac_match = re.search(r"((?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})", cleaned)
+        if not ip_match or not mac_match:
+            continue
+
+        mac = mac_match.group(1).lower().replace(":", "-")
+        interface_match = re.search(r"\bon\s+(\S+)", cleaned, re.IGNORECASE)
+        parsed.append({
+            "ip_address": ip_match.group(1),
+            "mac": mac,
+            "interface": interface_match.group(1) if interface_match else "",
+            "raw_line": cleaned,
+        })
+
+    return parsed
+
 # ------------------------------------------------------------
 # ARP SCAN FUNCTION
 # ------------------------------------------------------------
@@ -100,14 +125,19 @@ def scan_wifi():
         print(f"[ERROR] ARP failed: {e}")
         return
 
-    macs = set(re.findall(ARP_REGEX, output))
-    macs = {m.lower().replace(":", "-") for m in macs if m.lower() not in IGNORE_MACS}
+    parsed_devices = parse_arp_output(output)
+    macs = {detail["mac"] for detail in parsed_devices if detail["mac"] not in IGNORE_MACS}
     if not macs:
         print("[SCAN] No MACs found (check ARP cache).")
         return
 
     print(f"[SCAN] Found {len(macs)} devices: {', '.join(macs)}")
-    for mac in macs:
+    DEVICE_DETAILS.clear()
+    for detail in parsed_devices:
+        mac = detail["mac"]
+        if mac in IGNORE_MACS:
+            continue
+        DEVICE_DETAILS[mac] = detail
         upsert_session(mac, now)
 
 # ------------------------------------------------------------
@@ -126,12 +156,22 @@ def dashboard():
     sessions = get_all_sessions()
     devices = {mac: {"roll_no": roll_no, "name": name} for mac, roll_no, name in get_all_devices()}
 
-    merged = []
+    rows = []
     for mac, first_seen, last_seen in sessions:
         info = devices.get(mac, {"roll_no": "", "name": ""})
-        merged.append((mac, info["roll_no"], info["name"], first_seen, last_seen))
+        detail = DEVICE_DETAILS.get(mac, {})
+        rows.append({
+            "mac": mac,
+            "roll_no": info["roll_no"],
+            "name": info["name"],
+            "first_seen": first_seen,
+            "last_seen": last_seen,
+            "ip_address": detail.get("ip_address", ""),
+            "interface": detail.get("interface", ""),
+            "raw_line": detail.get("raw_line", ""),
+        })
 
-    return render_template("dashboard.html", rows=merged)
+    return render_template("dashboard.html", rows=rows)
 
 @app.route("/assign", methods=["POST"])
 def assign_roll():
@@ -149,12 +189,13 @@ def export_csv():
 
     si = StringIO()
     cw = csv.writer(si)
-    cw.writerow(["MAC", "Roll No", "Name", "First Seen", "Last Seen"])
+    cw.writerow(["MAC", "Roll No", "Name", "IP Address", "Interface", "First Seen", "Last Seen", "ARP Line"])
     for mac, first_seen, last_seen in sessions:
         info = devices.get(mac, {"roll_no": "", "name": ""})
-        cw.writerow([mac, info["roll_no"], info["name"],
+        detail = DEVICE_DETAILS.get(mac, {})
+        cw.writerow([mac, info["roll_no"], info["name"], detail.get("ip_address", ""), detail.get("interface", ""),
                      time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(first_seen)),
-                     time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_seen))])
+                     time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_seen)), detail.get("raw_line", "")])
     return Response(
         si.getvalue().encode("utf-8"),
         mimetype="text/csv",
