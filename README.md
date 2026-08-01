@@ -1,67 +1,133 @@
 # Attendance App
 
-Welcome to the Attendance App repository. This project is intended to help organizations, schools, or teams track attendance in a simple and organized way. It can also be adapted for other check-in or participant tracking scenarios, such as workshops, events, training sessions, or team meetings.
+Attendance App is a lightweight prototype for tracking attendance using local network discovery. It is designed for early-stage learning, prototyping, and internal testing rather than production deployment.
 
 ## Overview
 
-The app is designed to make attendance management easy by allowing users to:
-- record attendance for a class, event, or meeting
-- mark participants as present, absent, or late
-- view attendance history and summaries
-- manage users or sessions in a centralized place
+The current implementation provides a simple Flask-based web app that:
+- scans the local network through the ARP cache
+- detects visible devices and records their presence over time
+- stores session and device information in a local SQLite database
+- shows a dashboard with recent activity
+- lets you assign a roll number and name to a detected MAC address
+- exports attendance data as a CSV file
 
-In its current state, this repository is still in its early stages and acts as a starting point for the project. The goal is to grow it into a complete attendance tracking application with a clear workflow and user-friendly experience.
+## Current Features
 
-## How the App Works
+### Attendance tracking prototype
+The app periodically runs an ARP scan and stores detected MAC addresses in a session table. This makes it useful for basic presence checks in a lab, event, classroom, or small team environment.
 
-At a high level, the app will work like this:
-1. A user starts a session or class.
-2. Participants are identified and attendance is taken.
-3. The app records each person’s status.
-4. The system stores or displays attendance results for review.
+### Dashboard
+The home page displays a table of detected devices, including:
+- MAC address
+- assigned roll number
+- assigned name
+- first seen timestamp
+- last seen timestamp
 
-This flow is meant to keep attendance tracking consistent and easy to manage.
+### Registration and assignment
+You can register a device by providing a MAC address, roll number, and name. These values are saved in the database and shown on the dashboard.
 
-## Current Status
+### CSV export
+The app includes an export endpoint that downloads the current session data as a CSV file for reporting or backup.
 
-This repository currently contains the initial project documentation only. The application code, UI, and backend implementation are not yet present, so the project should be considered a work in progress.
+## Project Structure
 
-## Limitations and Warnings
+- app.py - Flask application, database helpers, scheduling, and routes
+- db.py - database-related utilities
+- chk.py - helper script related to checking attendance state
+- wifi_scanner.py - network scanning logic
+- templates/ - HTML templates for dashboard and registration views
+- schema.sql - SQLite schema definition
+- attendance.db - local SQLite database file
+- requirements.txt - Python dependencies
+- package.json - npm-compatible entry point for local development
 
-Please keep the following in mind while using or contributing to this project:
-- The app is not yet fully implemented.
-- There is no production-ready deployment or authentication layer yet.
-- Data persistence and storage behavior are still to be defined.
-- Features such as reporting, export, role-based access, or real-time updates may be added later.
-- Use this project for learning, prototyping, or early development only until the core functionality is complete.
+## How It Works
+
+1. The application starts a background scheduler.
+2. Every 30 seconds, it runs an ARP scan to discover visible devices.
+3. Detected MAC addresses are stored in the sessions table.
+4. The dashboard merges session data with registered device metadata.
+5. You can view, update, and export attendance information from the web interface.
+
+## Requirements
+
+Before running the app, make sure you have:
+- Python 3.10 or newer
+- pip
+- access to the ARP command on your system
+
+On many Linux environments, the ARP command is available by default. If it is missing, the scan may not return any results.
 
 ## Getting Started
 
-Because the repository is still in its early stages, there is not yet a runnable application to launch. Once the app code is added, the typical flow will be:
-
-1. Clone the repository
-2. Install dependencies with your package manager
-3. Configure any required environment variables
-4. Start the development server
-
-Example (common for modern web projects):
+### 1. Clone the repository
 ```bash
 git clone <repository-url>
 cd Attendance-App
-npm install
+```
+
+### 2. Install Python dependencies
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 3. Start the development server
+You can use either of the following commands:
+
+```bash
 npm run dev
 ```
 
-If the project uses a different stack later, the exact commands may change.
+or
+
+```bash
+python app.py
+```
+
+The app will start on:
+- http://127.0.0.1:5050
+
+### 4. Use the dashboard
+Open the browser and visit the local URL to view detected devices and manage attendance entries.
+
+## Typical Workflow
+
+1. Start the app.
+2. Allow the scanner to collect device activity.
+3. View the detected rows on the dashboard.
+4. Assign names and roll numbers to known devices.
+5. Export the attendance data as CSV when needed.
+
+## Data Storage
+
+The app uses SQLite for local persistence. The database file is stored as attendance.db and contains tables for:
+- sessions - timestamped presence data
+- devices - device metadata such as roll number and name
+
+## Limitations and Warnings
+
+Please keep the following in mind while using this project:
+- This is not a production-ready deployment.
+- There is no authentication or role-based access layer yet.
+- The app is intended for learning, testing, and prototyping.
+- Network detection depends on local ARP visibility and system environment.
+- Future improvements may include better security, persistence design, reporting, and real-time updates.
+
+## Roadmap Ideas
+
+Potential enhancements for future versions include:
+- user authentication and admin roles
+- real-time updates in the browser
+- improved reporting and analytics
+- better device identification and validation
+- deployment support with Docker or cloud hosting
 
 ## Contributing
 
-Contributions are very welcome. If you would like to improve the project, please feel free to open an issue or submit a pull request. Clear documentation, thoughtful design, and small incremental improvements are especially appreciated.
+Contributions are welcome. If you would like to improve the project, feel free to open an issue or submit a pull request with a clear description of the change.
 
 ## License
 
-This project is licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. You may obtain a copy of the License at
-
-    http://apache.org
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+This project is licensed under the Apache License, Version 2.0. See the LICENSE file for details.
