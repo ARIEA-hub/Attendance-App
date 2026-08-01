@@ -1,0 +1,10 @@
+{
+  "name": "attendance-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Python Flask attendance app with a npm-compatible dev script",
+  "scripts": {
+    "dev": "python app.py",
+    "start": "python app.py"
+  }
+}
