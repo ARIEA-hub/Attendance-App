@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wi-Fi Attendance (ARP)</title>
+  <meta http-equiv="refresh" content="30">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    h1 { color: #2c3e50; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+    form { display: inline; }
+  </style>
+</head>
+<body>
+  <h1>📶 Wi-Fi Attendance Dashboard</h1>
+  <p>Auto-refresh every 30s — <a href="/export">📄 Download CSV</a></p>
+
+  <table>
+    <tr>
+      <th>MAC</th>
+      <th>Roll No</th>
+      <th>Name</th>
+      <th>First Seen</th>
+      <th>Last Seen</th>
+      <th>Assign</th>
+    </tr>
+    {% for mac, roll, name, first, last in rows %}
+    <tr>
+      <td>{{ mac }}</td>
+      <td>{{ roll }}</td>
+      <td>{{ name }}</td>
+      <td>{{ first|datetimeformat }}</td>
+      <td>{{ last|datetimeformat }}</td>
+      <td>
+        <form action="/assign" method="post">
+          <input type="hidden" name="mac" value="{{ mac }}">
+          <input type="text" name="roll_no" placeholder="Roll No" value="{{ roll }}">
+          <input type="text" name="name" placeholder="Name" value="{{ name }}">
+          <button type="submit">💾 Save</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>
